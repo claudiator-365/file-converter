@@ -1,0 +1,18 @@
+{
+  "name": "folio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser PDF toolkit (edit, sign, merge, split, convert PDF to Excel...). No framework, no bundler.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "smoke": "node tests/smoke.mjs",
+    "test": "node tests/smoke.mjs && node tests/run.mjs tests/samples/26-2091.pdf",
+    "test:all": "node tests/run.mjs tests/samples/*.pdf",
+    "serve": "npx serve .",
+    "format": "prettier --write \"js/**/*.js\" \"css/**/*.css\" index.html"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "^5.0.0",
+    "prettier": "^3.0.0"
+  }
+}

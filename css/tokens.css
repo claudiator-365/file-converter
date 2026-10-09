@@ -1,0 +1,29 @@
+/* Design tokens: colours for light and dark mode. Change the look here. */
+:root {
+  --ink: #1c1b19;
+  --paper: #fbfaf7;
+  --line: #d8d4cb;
+  --accent: #2a5a4a;
+  --soft: #e8eeeb;
+  --danger: #a3392a;
+  color-scheme: light dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top,0px);
+  padding-bottom: env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #efece6;
+    --paper: #1b1a18;
+    --line: #3a372f;
+    --accent: #7fc3a8;
+    --soft: #232f29;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #efece6;
+  --paper: #1b1a18;
+  --line: #3a372f;
+  --accent: #7fc3a8;
+  --soft: #232f29;
+}
