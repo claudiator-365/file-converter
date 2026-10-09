@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Folio — PDF tools</title>
+
+  <!-- Third-party libraries (CDN). They must load before our own scripts. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- Styles -->
+  <style>
+/* css/tokens.css */
+/* Design tokens: colours for light and dark mode. Change the look here. */
+:root {
+  --ink: #1c1b19;
+  --paper: #fbfaf7;
+  --line: #d8d4cb;
+  --accent: #2a5a4a;
+  --soft: #e8eeeb;
+  --danger: #a3392a;
+  color-scheme: light dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top,0px);
+  padding-bottom: env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #efece6;
+    --paper: #1b1a18;
+    --line: #3a372f;
+    --accent: #7fc3a8;
+    --soft: #232f29;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #efece6;
+  --paper: #1b1a18;
+  --line: #3a372f;
+  --accent: #7fc3a8;
+  --soft: #232f29;
+}
+</style>
+  <style>
+/* css/base.css */
+/* Page frame: body, header, headings, footer. */
+html {
+  scroll-padding-top: env(safe-area-inset-top,0px);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.55 "Iowan Old Style",Georgia,serif;
+}
+header {
+  position: sticky;
+  top: env(safe-area-inset-top,0px);
+  z-index: 20;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.logo {
+  font: 600 20px Georgia,serif;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+header span {
+  font: 12px system-ui,sans-serif;
+  opacity: .65;
+}
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 20px 70px;
+}
+h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  margin: 12px 0 8px;
+  max-width: 560px;
+}
+h2 {
+  font-size: 24px;
+  margin: 8px 0 2px;
+}
+.lede,
+.note {
+  font: 13px system-ui,sans-serif;
+  opacity: .75;
+  margin: 4px 0;
+}
+
+footer {
+  font: 12px system-ui,sans-serif;
+  opacity: .6;
+  margin-top: 30px;
+}
+</style>
+  <style>
+/* css/home.css */
+/* Home screen: the grid of tools. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(235px,1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  margin-top: 26px;
+}
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: none;
+  color: var(--ink);
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+  cursor: pointer;
+  font: inherit;
+}
+.tool b {
+  font-size: 17px;
+}
+.tool span {
+  font: 13px system-ui,sans-serif;
+  opacity: .7;
+}
+.tool:hover,
+.tool:focus-visible {
+  background: var(--soft);
+  outline: none;
+}
+.back {
+  font: 13px system-ui,sans-serif;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+</style>
+  <style>
+/* css/components.css */
+/* Reusable pieces: buttons, drop zone, bars, form controls, lists, thumbnails, previews. */
+.btn {
+  font: 13px/1 system-ui,sans-serif;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 9px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.btn.sm {
+  padding: 6px 9px;
+}
+.btn:hover {
+  border-color: var(--accent);
+}
+.btn:disabled {
+  opacity: .4;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+.btn:focus-visible,
+.drop:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px dashed var(--line);
+  border-radius: 6px;
+  padding: 46px 20px;
+  margin: 18px 0;
+  cursor: pointer;
+  text-align: center;
+}
+.drop.over,
+.drop:hover {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+.drop span {
+  font: 13px system-ui,sans-serif;
+  opacity: .65;
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+.sticky {
+  position: sticky;
+  top: calc(52px + env(safe-area-inset-top,0px));
+  background: var(--paper);
+  padding: 8px 0;
+  margin: 0;
+  z-index: 5;
+  border-bottom: 1px solid var(--line);
+}
+.sp {
+  flex: 1;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 14px 0;
+}
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 12px system-ui,sans-serif;
+}
+select,
+input[type=text],
+input[type=number] {
+  font: 13px system-ui,sans-serif;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 7px 8px;
+  border-radius: 3px;
+  min-width: 120px;
+}
+input[type=color] {
+  width: 34px;
+  height: 32px;
+  border: 1px solid var(--line);
+  background: none;
+  padding: 2px;
+}
+.list {
+  margin: 10px 0;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.row .nm {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row .sz {
+  font: 12px system-ui,sans-serif;
+  opacity: .6;
+}
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(170px,1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+.th {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: var(--soft);
+  border: 1px solid var(--line);
+}
+.th canvas {
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,.25);
+}
+.tc {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.warn {
+  border: 1px solid var(--danger);
+  padding: 10px 12px;
+  border-radius: 3px;
+  font: 13px/1.45 system-ui,sans-serif;
+  margin: 10px 0;
+}
+.pv {
+  overflow: auto;
+  max-height: 260px;
+  border: 1px solid var(--line);
+  margin: 4px 0 14px;
+}
+.pv table {
+  border-collapse: collapse;
+  font: 12px system-ui,sans-serif;
+}
+.pv td {
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  white-space: pre-wrap;
+  vertical-align: top;
+  max-width: 380px;
+}
+.pv tr.hd td {
+  font-weight: 600;
+  background: var(--soft);
+}
+</style>
+  <style>
+/* css/editor.css */
+/* Edit/Sign editor: page stage, placed text/images, signature dialog. */
+.pagewrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 60px;
+  overflow: auto;
+}
+.stage {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 2px 18px rgba(0,0,0,.25);
+}
+.stage canvas {
+  display: block;
+  cursor: text;
+}
+.item {
+  position: absolute;
+}
+.txt {
+  outline: 1px dashed transparent;
+  min-width: 28px;
+  line-height: 1;
+  white-space: pre;
+  font-family: Helvetica,Arial,sans-serif;
+  padding: 0;
+}
+.item:hover .txt,
+.txt:focus {
+  outline-color: var(--accent);
+}
+.txt:empty::before {
+  content: "Type here";
+  opacity: .35;
+}
+.item img {
+  display: block;
+  outline: 1px dashed transparent;
+}
+.item:hover img {
+  outline-color: var(--accent);
+}
+.grip,
+.x,
+.rs {
+  position: absolute;
+  display: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--paper);
+  font: 12px/18px system-ui,sans-serif;
+  text-align: center;
+  touch-action: none;
+  user-select: none;
+}
+.grip {
+  left: 0;
+  top: -18px;
+  cursor: grab;
+}
+.x {
+  left: 22px;
+  top: -18px;
+  background: var(--danger);
+  cursor: pointer;
+}
+.rs {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+.item:hover .grip,
+.item:hover .x,
+.item:hover .rs,
+.item:focus-within .grip,
+.item:focus-within .x {
+  display: block;
+}
+@media (hover:none) {
+  .grip,
+  .x,
+  .rs {
+    display: block;
+  }
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,.5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.dlg {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  width: min(600px,100%);
+}
+.pad {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  margin: 10px 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+</style>
+</head>
+<body>
+  <header>
+    <button class="logo" id="logo">Folio</button>
+    <span>Runs in your browser. Files never leave this tab.</span>
+  </header>
+  <main id="app"></main>
+
+  <!-- Our code. ORDER MATTERS: these are plain scripts that share one global scope. -->
+  <!-- 1. settings and shared globals -->
+  <script>
+/* js/config.js */
+// Settings you are likely to change. Loaded first.
+const CFG = {
+  // Excel column width = PDF points / this number (calibrated against Smallpdf output)
+  colWidthPt: 4.3,
+  // PDF to Excel limits
+  maxUploadMB: 50,
+  maxPages: 300,
+  // Libraries loaded on demand / by pdf.js
+  excelJsUrl: 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+  pdfWorkerUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+};
+</script>
+  <script>
+/* js/setup.js */
+// Globals shared by all files: library handles, the #app element, current tool, downloads hook.
+const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = CFG.pdfWorkerUrl;
+const app = document.getElementById('app');
+let cur = null, dl = null;
+try {
+  (window.claude ? claude.use('downloads') : Promise.resolve(null)).then(x => dl = x).catch(() => { });
+}
+catch (e) { }
+</script>
+  <!-- 2. helpers -->
+  <script>
+/* js/utils/dom.js */
+// Tiny DOM helpers used by every tool.
+const h = (t, a = {}, ...c) => { const e = document.createElement(t); for (const k in a) {
+  if (k.startsWith('on'))
+    e[k] = a[k];
+  else
+    e.setAttribute(k, a[k]);
+} c.flat().forEach(x => e.append(x && x.nodeType ? x : document.createTextNode(x == null ? '' : x))); return e; };
+const B = (t, fn, c = '') => h('button', { class: 'btn ' + c, onclick: fn }, t);
+const sel = (o, v) => { const s = h('select', {}, ...o.map(x => h('option', { value: x[0] }, x[1]))); if (v != null)
+  s.value = v; return s; };
+const L2 = (t, el) => h('label', {}, t, el);
+async function busy(b, fn) { const t = b.textContent; b.disabled = true; b.textContent = 'Working…'; try {
+  await fn();
+}
+catch (e) {
+  alert('Something went wrong: ' + (e.message || e));
+} b.disabled = false; b.textContent = t; }
+</script>
+  <script>
+/* js/utils/format.js */
+// Text and number formatting helpers.
+const fmt = n => n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
+const stem = f => f.name.replace(/\.[^.]+$/, '');
+const clean = s => String(s).replace(/₱/g, 'PHP ').replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
+function ranges(s, n) {
+  const out = [];
+  if (!s.trim()) {
+    for (let i = 0; i < n; i++)
+      out.push(i);
+    return out;
+  }
+  for (const part of s.split(',')) {
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!m)
+      throw Error('Could not read "' + part.trim() + '". Use numbers like 1-3, 5.');
+    const a = +m[1], b = m[2] ? +m[2] : a;
+    if (a < 1 || b > n || a > b)
+      throw Error('Pages must be between 1 and ' + n + '.');
+    for (let i = a; i <= b; i++)
+      out.push(i - 1);
+  }
+  return out;
+}
+</script>
+  <script>
+/* js/utils/files.js */
+// File helpers: saving downloads, drop-zone file picker, file lists.
+async function save(data, name) {
+  if (!dl) { // opened outside claude.ai (locally or on your own host): ordinary browser download
+    const a = h('a', { href: URL.createObjectURL(data instanceof Blob ? data : new Blob([data])), download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return;
+  }
+  try {
+    await dl.save({ filename: name, data });
+  }
+  catch (e) {
+    if (e && e.code !== 'declined')
+      alert('Could not save: ' + (e.message || e.code));
+  }
+}
+function pick(root, accept, multiple, label, cb) {
+  const inp = h('input', { type: 'file', accept: accept.join(','), style: 'display:none' });
+  inp.multiple = !!multiple;
+  const ok = f => accept.some(a => a.endsWith('/*') ? f.type.startsWith(a.slice(0, -1)) : f.type === a);
+  const go2 = fs => { fs = [...fs].filter(ok); if (fs.length)
+    cb(multiple ? fs : fs[0]);
+  else
+    alert('That file type is not supported by this tool.'); };
+  inp.onchange = () => { go2(inp.files); inp.value = ''; };
+  const dz = h('div', { class: 'drop', tabindex: '0', onclick: () => inp.click(), onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inp.click();
+    } },
+    ondragover: e => { e.preventDefault(); dz.classList.add('over'); }, ondragleave: () => dz.classList.remove('over'),
+    ondrop: e => { e.preventDefault(); dz.classList.remove('over'); go2(e.dataTransfer.files); } }, h('b', {}, label), h('span', {}, 'or drop it here'));
+  root.append(inp, dz);
+  return dz;
+}
+function onePdf(root, setup) {
+  pick(root, ['application/pdf'], false, 'Choose a PDF', async (f) => {
+    const buf = await f.arrayBuffer();
+    root.replaceChildren(h('div', { class: 'bar' }, h('span', { class: 'note' }, f.name + ' · ' + fmt(f.size)), B('Change file', () => go(cur), 'sm')));
+    await setup(f, buf);
+  });
+}
+function fileList(onChange) {
+  let files = [];
+  const el = h('div', { class: 'list' });
+  function draw() {
+    el.replaceChildren(...files.map((f, i) => h('div', { class: 'row' }, h('span', { class: 'nm' }, f.name), h('span', { class: 'sz' }, fmt(f.size)), B('↑', () => { if (i > 0) {
+      [files[i - 1], files[i]] = [files[i], files[i - 1]];
+      draw();
+    } }, 'sm'), B('↓', () => { if (i < files.length - 1) {
+      [files[i + 1], files[i]] = [files[i], files[i + 1]];
+      draw();
+    } }, 'sm'), B('Remove', () => { files.splice(i, 1); draw(); }, 'sm'))));
+    onChange(files);
+  }
+  return { el, files: () => files, add: fs => { files.push(...fs); draw(); } };
+}
+</script>
+  <script>
+/* js/utils/pdf.js */
+// pdf.js helpers: open a PDF for reading, render a page to a canvas.
+const openPdfJs = buf => pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
+async function pageToCanvas(pg, scale) {
+  const vp = pg.getViewport({ scale });
+  const c = h('canvas');
+  c.width = Math.round(vp.width);
+  c.height = Math.round(vp.height);
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff';
+  x.fillRect(0, 0, c.width, c.height);
+  await pg.render({ canvasContext: x, viewport: vp }).promise;
+  return c;
+}
+const toBlob = (c, t, q) => new Promise(r => c.toBlob(r, t, q));
+</script>
+  <!-- 3. table-extraction engine (namespace first) -->
+  <script>
+/* js/core/namespace.js */
+// The table-extraction engine lives on one shared object, `X`.
+// Each file in js/core/ adds its own methods to it with Object.assign(X, {...}).
+// This file must load first.
+const X = {};
+</script>
+  <script>
+/* js/core/numbers.js */
+// Turning cell text into Excel numbers, and match-quality labels.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // "₱12,500.00", "(1,200)", "15%" -> {v,z}; codes like 007 or long IDs stay text
+  num(s) {
+    let t = String(s).trim(), neg = false, pct = false;
+    if (/^\(.*\)$/.test(t)) {
+      neg = true;
+      t = t.slice(1, -1).trim();
+    }
+    if (/^[-−–]/.test(t)) {
+      neg = true;
+      t = t.slice(1).trim();
+    }
+    t = t.replace(/^(₱|PHP|Php|\$)\s*/, '');
+    if (t.endsWith('%')) {
+      pct = true;
+      t = t.slice(0, -1).trim();
+    }
+    const m = t.match(/^(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?$/);
+    if (!m)
+      return null;
+    const ip = m[1].replace(/,/g, '');
+    if ((ip.length > 1 && ip[0] === '0') || ip.length > 15)
+      return null;
+    const d = m[2] ? m[2].length : 0;
+    let v = +(ip + (m[2] ? '.' + m[2] : ''));
+    if (neg)
+      v = -v;
+    if (pct)
+      v /= 100;
+    return { v, z: pct ? '0' + (d ? '.' + '0'.repeat(d) : '') + '%' : (m[1].includes(',') ? '#,##0' : '0') + (d ? '.' + '0'.repeat(d) : '') };
+  },
+  label(c) { return c >= .75 ? 'Good' : c >= .5 ? 'Check' : 'Low'; }
+});
+</script>
+  <script>
+/* js/core/text.js */
+// Reading text out of a PDF page: text items, rows, cells, columns, fonts.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  median(a) { if (!a.length)
+    return 0; const s = [...a].sort((p, q) => p - q), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; },
+  // pdf.js textContent -> items in top-down page coordinates (y = baseline). Rotated text is skipped.
+  items(tc, vp, Util) {
+    const out = [];
+    for (const it of tc.items) {
+      if (!it.str || !it.str.trim())
+        continue;
+      const t = Util.transform(vp.transform, it.transform);
+      if (Math.abs(t[1]) > Math.abs(t[0]) * .5)
+        continue;
+      out.push({ s: it.str, x: t[4], y: t[5], w: it.width * vp.scale, h: Math.hypot(t[2], t[3]) || it.height || 10, f: (tc.styles[it.fontName] || {}).fontFamily || '' });
+    }
+    return out;
+  },
+  // group items into visual rows, then split each row into cells wherever there is a wide gap
+  rows(items, o = {}) {
+    const K = o.k || .55, pad = !!o.pad;
+    if (!items.length)
+      return [];
+    const hm = X.median(items.map(i => i.h)), tol = Math.max(2, hm * .55), rs = [];
+    for (const it of [...items].sort((a, b) => a.y - b.y || a.x - b.x)) {
+      const r = rs[rs.length - 1];
+      if (r && Math.abs(it.y - r.y) <= tol) {
+        r.items.push(it);
+        r.y = (r.y * (r.items.length - 1) + it.y) / r.items.length;
+      }
+      else
+        rs.push({ y: it.y, items: [it] });
+    }
+    for (const r of rs) {
+      r.items.sort((a, b) => a.x - b.x);
+      r.cells = [];
+      let c = null;
+      for (const it of r.items) {
+        const gap = c ? it.x - c.x1 : 0, lim = Math.max(2, Math.min(it.h, c ? c.h : it.h) * K);
+        if (c && gap < lim) {
+          c.t += (gap > it.h * .12 ? (pad ? ' '.repeat(Math.max(1, Math.round(gap / (it.h * .28)))) : (!/\s$/.test(c.t) && !/^\s/.test(it.s) ? ' ' : '')) : '') + it.s;
+          c.x1 = Math.max(c.x1, it.x + it.w);
+        }
+        else {
+          c = { t: it.s, x0: it.x, x1: it.x + it.w, h: it.h, f: it.f };
+          r.cells.push(c);
+        }
+      }
+      r.cells.forEach(k => { k.t = k.t.replace(/[\u0003-\u001f]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 29)).replace(/\u00a0/g, ' ').replace(/\u0b11(?=\s*\d)/g, '₱'); k.t = (pad ? k.t : k.t.replace(/\s+/g, ' ')).trim(); });
+      r.h = Math.max(...r.items.map(i => i.h));
+      r.cells = r.cells.filter(k => k.t);
+    }
+    return rs.filter(r => r.cells.length);
+  },
+  // x-ranges where cells overlap vertically = columns
+  cols(cs, thr) {
+    const x0 = Math.floor(Math.min(...cs.map(c => c.x0))), x1 = Math.ceil(Math.max(...cs.map(c => c.x1))), occ = new Int32Array(x1 - x0 + 2);
+    cs.forEach(c => { for (let x = Math.floor(c.x0); x < Math.ceil(c.x1); x++)
+      occ[x - x0]++; });
+    const segs = [];
+    let st = -1;
+    for (let i = 0; i <= x1 - x0 + 1; i++) {
+      const f = i <= x1 - x0 && occ[i] > thr;
+      if (f && st < 0)
+        st = i;
+      if (!f && st >= 0) {
+        segs.push([st + x0, i + x0]);
+        st = -1;
+      }
+    }
+    const b = [];
+    for (const s of segs) {
+      const m = b[b.length - 1];
+      if (m && s[0] - m[1] < 3)
+        m[1] = s[1];
+      else
+        b.push([...s]);
+    }
+    return b;
+  },
+  fontOf(its) {
+    const f = its[0] ? its[0].f : '', n = /mono/.test(f) ? 'Courier New' : /serif/.test(f) && !/sans/.test(f) ? 'Times New Roman' : 'Arial';
+    return { fn: n, fs: Math.min(14, Math.max(6, Math.round(X.median(its.map(i => i.h)) * 2) / 2)) };
+  }
+});
+</script>
+  <script>
+/* js/core/lines.js */
+// Reading the lines and box borders drawn on a PDF page (pdf.js operator list).
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // horizontal / vertical rules and rectangle borders from a pdf.js operator list (pdf.js 3.x and 4+/5.x formats)
+  segs(ol, O, vp, Util) {
+    const H = [], V = [], paint = [O.stroke, O.closeStroke, O.fill, O.eoFill, O.fillStroke, O.eoFillStroke, O.closeFillStroke, O.closeEOFillStroke];
+    const strokes = [O.stroke, O.closeStroke, O.fillStroke, O.eoFillStroke, O.closeFillStroke, O.closeEOFillStroke];
+    let ctm = [1, 0, 0, 1, 0, 0], stack = [], pend = [];
+    const sub = (path, closed, stk) => {
+      const T = Util.transform(vp.transform, ctm), p = path.map(q => [T[0] * q[0] + T[2] * q[1] + T[4], T[1] * q[0] + T[3] * q[1] + T[5]]);
+      const xs = p.map(q => q[0]), ys = p.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const ax = p.every(q => (Math.abs(q[0] - x0) < .6 || Math.abs(q[0] - x1) < .6) && (Math.abs(q[1] - y0) < .6 || Math.abs(q[1] - y1) < .6));
+      const ln = (a, b) => {
+        const dx = Math.abs(a[0] - b[0]), dy = Math.abs(a[1] - b[1]);
+        if (dy < .6 && dx >= 3)
+          H.push({ y: (a[1] + b[1]) / 2, x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]) });
+        else if (dx < .6 && dy >= 3)
+          V.push({ x: (a[0] + b[0]) / 2, y0: Math.min(a[1], b[1]), y1: Math.max(a[1], b[1]) });
+      };
+      if (p.length >= 4 && ax && (closed || p.length === 5) && x1 - x0 > 0 && y1 - y0 > 0) {
+        if (y1 - y0 <= 2.5)
+          ln([x0, (y0 + y1) / 2], [x1, (y0 + y1) / 2]);
+        else if (x1 - x0 <= 2.5)
+          ln([(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1]);
+        else if (stk) {
+          ln([x0, y0], [x1, y0]);
+          ln([x0, y1], [x1, y1]);
+          ln([x0, y0], [x0, y1]);
+          ln([x1, y0], [x1, y1]);
+        }
+      }
+      else {
+        for (let i = 1; i < p.length; i++)
+          ln(p[i - 1], p[i]);
+        if (closed && p.length > 2)
+          ln(p[p.length - 1], p[0]);
+      }
+    };
+    const commit = (subs, stk) => subs.forEach(s => sub(s.p, s.c, stk));
+    ol.fnArray.forEach((fn, i) => {
+      const a = ol.argsArray[i];
+      if (fn === O.save)
+        stack.push(ctm.slice());
+      else if (fn === O.restore) {
+        if (stack.length)
+          ctm = stack.pop();
+      }
+      else if (fn === O.transform)
+        ctm = Util.transform(ctm, a);
+      else if (fn === O.constructPath) {
+        const subs = [];
+        if (Array.isArray(a[0])) { // pdf.js 3.x: [ops[], coords[]]
+          const ops = a[0], c = a[1];
+          let ci = 0, cur = null;
+          for (const op of ops) {
+            if (op === O.moveTo) {
+              cur = { p: [[c[ci], c[ci + 1]]], c: false };
+              subs.push(cur);
+              ci += 2;
+            }
+            else if (op === O.lineTo) {
+              if (cur)
+                cur.p.push([c[ci], c[ci + 1]]);
+              ci += 2;
+            }
+            else if (op === O.rectangle) {
+              const x = c[ci], y = c[ci + 1], w = c[ci + 2], h = c[ci + 3];
+              ci += 4;
+              subs.push({ p: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], c: true });
+              cur = null;
+            }
+            else if (op === O.closePath) {
+              if (cur)
+                cur.c = true;
+            }
+            else if (op === O.curveTo)
+              ci += 6;
+            else if (op === O.curveTo2 || op === O.curveTo3)
+              ci += 4;
+          }
+          pend.push(...subs);
+        }
+        else { // pdf.js 4+/5.x: [paintOp, [Float32Array(path)], minMax]; path ops 0 move,1 line,2 curve,3 quad,4 close
+          const d = a[1] && a[1][0];
+          if (!d)
+            return;
+          let k = 0, cur = null;
+          while (k < d.length) {
+            const op = d[k++];
+            if (op === 0) {
+              cur = { p: [[d[k], d[k + 1]]], c: false };
+              subs.push(cur);
+              k += 2;
+            }
+            else if (op === 1) {
+              if (cur)
+                cur.p.push([d[k], d[k + 1]]);
+              k += 2;
+            }
+            else if (op === 2)
+              k += 6;
+            else if (op === 3)
+              k += 4;
+            else if (op === 4) {
+              if (cur)
+                cur.c = true;
+            }
+            else
+              break;
+          }
+          if (paint.includes(a[0]))
+            commit(subs, strokes.includes(a[0]));
+        }
+      }
+      else if (paint.includes(fn)) {
+        commit(pend, strokes.includes(fn));
+        pend = [];
+      }
+      else if (fn === O.endPath)
+        pend = [];
+    });
+    const mg = (arr, k, lo, hi) => { arr.sort((p, q) => p[k] - q[k] || p[lo] - q[lo]); const o = []; for (const s of arr) {
+      const m = o[o.length - 1];
+      if (m && Math.abs(s[k] - m[k]) <= 1.5 && s[lo] <= m[hi] + 2)
+        m[hi] = Math.max(m[hi], s[hi]);
+      else
+        o.push({ ...s });
+    } return o; };
+    return { H: mg(H, 'y', 'x0', 'x1'), V: mg(V, 'x', 'y0', 'y1') };
+  }
+});
+</script>
+  <script>
+/* js/core/ruled-tables.js */
+// Tables drawn with lines: builds the cell grid and merged cells from the rules.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // ruled tables: cells come from the drawn lines, merged where an inner line is missing
+  grids(H, V, items) {
+    const sg = [...H.map(s => ({ h: 1, s })), ...V.map(s => ({ h: 0, s }))], par = sg.map((_, i) => i), f = i => par[i] === i ? i : (par[i] = f(par[i]));
+    for (let i = 0; i < sg.length; i++)
+      for (let j = i + 1; j < sg.length; j++) {
+        const a = sg[i], b = sg[j];
+        if (a.h === b.h)
+          continue;
+        const hh = a.h ? a.s : b.s, vv = a.h ? b.s : a.s;
+        if (vv.x >= hh.x0 - 2 && vv.x <= hh.x1 + 2 && hh.y >= vv.y0 - 2 && hh.y <= vv.y1 + 2)
+          par[f(i)] = f(j);
+      }
+    const comp = {};
+    sg.forEach((s, i) => (comp[f(i)] = comp[f(i)] || []).push(s));
+    const cl = a => { a = [...a].sort((p, q) => p - q); const o = []; for (const v of a)
+      if (!o.length || v - o[o.length - 1] > 2.5)
+        o.push(v); return o; };
+    const used = new Set(), sheets = [];
+    for (const g of Object.values(comp)) {
+      const hs = g.filter(s => s.h).map(s => s.s), vs = g.filter(s => !s.h).map(s => s.s);
+      if (hs.length < 2 || vs.length < 2)
+        continue;
+      const ys = cl(hs.map(s => s.y)), xs = cl(vs.map(s => s.x));
+      if (ys.length < 2 || xs.length < 2)
+        continue;
+      const nr = ys.length - 1, nc = xs.length - 1, inb = it => { const cx = it.x + it.w / 2, cy = it.y - it.h * .3; return cx >= xs[0] - 1 && cx <= xs[nc] + 1 && cy >= ys[0] - 1 && cy <= ys[nr] + 1; };
+      const mine = items.filter(inb);
+      if (!mine.length)
+        continue;
+      const ve = (c, r) => vs.some(s => Math.abs(s.x - xs[c]) <= 3 && s.y0 <= ys[r] + 3 && s.y1 >= ys[r + 1] - 3), he = (r, c) => hs.some(s => Math.abs(s.y - ys[r]) <= 3 && s.x0 <= xs[c] + 3 && s.x1 >= xs[c + 1] - 3);
+      const p2 = Array.from({ length: nr * nc }, (_, i) => i), f2 = i => p2[i] === i ? i : (p2[i] = f2(p2[i]));
+      for (let r = 0; r < nr; r++)
+        for (let c = 0; c < nc; c++) {
+          if (c < nc - 1 && !ve(c + 1, r))
+            p2[f2(r * nc + c)] = f2(r * nc + c + 1);
+          if (r < nr - 1 && !he(r + 1, c))
+            p2[f2(r * nc + c)] = f2((r + 1) * nc + c);
+        }
+      const gr = {};
+      for (let i = 0; i < nr * nc; i++)
+        (gr[f2(i)] = gr[f2(i)] || []).push(i);
+      const own = Array(nr * nc).fill(null), merges = [], box = {};
+      for (const m of Object.values(gr)) {
+        const rs = m.map(i => Math.floor(i / nc)), cs = m.map(i => i % nc), r0 = Math.min(...rs), r1 = Math.max(...rs), c0 = Math.min(...cs), c1 = Math.max(...cs);
+        if (m.length !== (r1 - r0 + 1) * (c1 - c0 + 1)) {
+          m.forEach(i => { const r = Math.floor(i / nc), c = i % nc; own[i] = [r, c]; box[i] = [r, c, r, c]; });
+          continue;
+        }
+        m.forEach(i => { own[i] = [r0, c0]; });
+        box[r0 * nc + c0] = [r0, c0, r1, c1];
+        if (m.length > 1)
+          merges.push([r0, c0, r1, c1]);
+      }
+      const bucket = {};
+      for (const it of mine) {
+        let c = 0;
+        while (c < nc - 1 && it.x + it.w / 2 >= xs[c + 1])
+          c++;
+        let r = 0;
+        while (r < nr - 1 && it.y - it.h * .3 >= ys[r + 1])
+          r++;
+        const o = own[r * nc + c];
+        (bucket[o[0] * nc + o[1]] = bucket[o[0] * nc + o[1]] || []).push(it);
+        used.add(it);
+      }
+      const rows = Array.from({ length: nr }, () => Array.from({ length: nc }, () => ({})));
+      for (const [k, b] of Object.entries(box)) {
+        const [r0, c0, r1, c1] = b, its = bucket[k] || [], cell = rows[r0][c0];
+        if (!its.length)
+          continue;
+        const rr = X.rows(its, { k: 3 }), t = rr.map(r => r.cells.map(c => c.t).join(' ')).join(' ').trim(), n = X.num(t), ft = X.fontOf(its);
+        const l0 = Math.min(...rr.flatMap(r => r.cells.map(c => c.x0))), l1 = Math.max(...rr.flatMap(r => r.cells.map(c => c.x1))), lg = l0 - xs[c0], rg = xs[c1 + 1] - l1;
+        cell.al = Math.abs(lg - rg) <= 4 && lg > 6 ? 'center' : rg < lg - 4 ? 'right' : 'left';
+        cell.fn = ft.fn;
+        cell.fs = ft.fs;
+        if (n) {
+          cell.v = n.v;
+          cell.z = n.z;
+        }
+        else
+          cell.t = t;
+      }
+      sheets.push({ kind: 'ruled', top: ys[0], left: xs[0], cw: xs.slice(1).map((x, i) => +((x - xs[i]) / CFG.colWidthPt).toFixed(1)), rh: ys.slice(1).map((y, i) => +(y - ys[i]).toFixed(2)), rows, merges, border: true, conf: 1 });
+    }
+    return { sheets, used };
+  }
+});
+</script>
+  <script>
+/* js/core/aligned-tables.js */
+// Tables without borders: found from aligned text; joins tables that continue across pages.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // find tables on one page: runs of multi-cell rows, columns from where cells never overlap vertically
+  tables(rows, pageW, pg) {
+    const out = [], used = new Set();
+    if (rows.length < 2)
+      return { tables: out, rest: rows };
+    const hm = X.median(rows.flatMap(r => r.cells.map(c => c.h))), gaps = [];
+    for (let i = 1; i < rows.length; i++)
+      gaps.push(rows[i].y - rows[i - 1].y);
+    const mg = X.median(gaps), brk = Math.max(hm * 3.6, mg * 2.6), cont = Math.max(hm * 2.2, mg * 1.9), runs = [];
+    let run = null;
+    for (const r of rows) {
+      const m = r.cells.length > 1;
+      if (run && r.y - run[run.length - 1].y <= (m ? brk : cont))
+        run.push(r);
+      else {
+        if (run)
+          runs.push(run);
+        run = m ? [r] : null;
+      }
+    }
+    if (run)
+      runs.push(run);
+    for (const rn of runs) {
+      while (rn.length && rn[rn.length - 1].cells.length < 2)
+        rn.pop();
+      const multi = rn.filter(r => r.cells.length > 1);
+      if (multi.length < 2)
+        continue;
+      const cnt = {};
+      multi.forEach(r => { cnt[r.cells.length] = (cnt[r.cells.length] || 0) + 1; });
+      const mode = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || b - a)[0];
+      while (rn.length && rn[0].cells.length < Math.max(2, Math.ceil(mode * .5)))
+        rn.shift();
+      const body = rn.filter(r => r.cells.length > 1);
+      if (body.length < 2)
+        continue;
+      const cs = body.flatMap(r => r.cells), bands = X.cols(cs, Math.floor(body.length * .1));
+      if (bands.length < 3)
+        continue;
+      const bi = c => { let best = 0, bo = -1e9; bands.forEach((b, k) => { const o = Math.min(b[1], c.x1) - Math.max(b[0], c.x0); if (o > bo) {
+        bo = o;
+        best = k;
+      } }); return best; };
+      const pitch = X.median(body.slice(1).map((r, i) => r.y - body[i].y)) || hm * 1.3, trows = [];
+      let conflicts = 0;
+      for (const r of rn) {
+        const cells = Array(bands.length).fill('');
+        let clash = false;
+        for (const c of r.cells) {
+          const k = bi(c);
+          if (cells[k]) {
+            cells[k] += ' ' + c.t;
+            clash = true;
+          }
+          else
+            cells[k] = c.t;
+        }
+        if (r.cells.length === 1 && trows.length) {
+          const k = bi(r.cells[0]), p = trows[trows.length - 1];
+          if (p.cells[k] && r.y - p.y <= pitch * 1.5) {
+            p.cells[k] += ' ' + r.cells[0].t;
+            p.y = r.y;
+            continue;
+          }
+        }
+        if (clash)
+          conflicts++;
+        trows.push({ y: r.y, cells });
+      }
+      const full = trows.filter(t => t.cells.filter(Boolean).length >= Math.ceil(bands.length * .8)).length;
+      const conf = (full / trows.length) * .75 + (1 - conflicts / trows.length) * .25;
+      if (trows.length < 3 || conf < .6)
+        continue;
+      out.push({ page: pg, last: pg, bands, rows: trows.map(t => t.cells), pageW, conf, top: rn[0].y });
+      rn.forEach(r => used.add(r));
+    }
+    return { tables: out, rest: rows.filter(r => !used.has(r)) };
+  },
+  // a table that continues on the next page (same columns) becomes one table
+  merge(ts) {
+    const out = [];
+    for (const t of ts) {
+      const p = out[out.length - 1];
+      if (p && t.firstOnPage && p.lastOnPage && t.page === p.last + 1 && t.bands.length === p.bands.length && t.bands.every((b, k) => Math.min(b[1], p.bands[k][1]) - Math.max(b[0], p.bands[k][0]) > 0)) {
+        const same = t.rows[0].join('|').toLowerCase() === p.rows[0].join('|').toLowerCase();
+        p.rows.push(...(same ? t.rows.slice(1) : t.rows));
+        p.last = t.page;
+        p.lastOnPage = t.lastOnPage;
+        p.conf = Math.min(p.conf, t.conf);
+      }
+      else
+        out.push(t);
+    }
+    out.forEach(t => { t.header = t.rows.length > 1 && t.rows[0].every(s => !s || !X.num(s)) && t.rows[0].some(Boolean); });
+    return out;
+  },
+  // Smallpdf-style sheet for a borderless aligned table
+  plainSheet(t) {
+    const ft = X.fontOf([]);
+    return { kind: 'plain', top: t.top, left: t.bands[0][0], page: t.page, cw: t.bands.map(b => +Math.min(60, Math.max(6, (b[1] - b[0]) / CFG.colWidthPt + 2)).toFixed(1)), rh: [],
+      rows: t.rows.map((r, ri) => r.map(s => { if (!s)
+        return {}; const n = t.header && ri === 0 ? null : X.num(s); return n ? { v: n.v, z: n.z, al: 'right', fn: 'Arial', fs: 9 } : { t: s, al: 'left', fn: 'Arial', fs: 9 }; })), merges: [], border: false, conf: t.conf };
+  }
+});
+</script>
+  <script>
+/* js/core/text-blocks.js */
+// Everything that is not a table: text split into blocks (Smallpdf-style).
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // everything else: horizontal bands of text, columns inside a band, one cell per column (like Smallpdf's text blocks)
+  blocks(rows, H, pageW) {
+    const out = [];
+    if (!rows.length)
+      return out;
+    const hm = X.median(rows.map(r => r.h)), bands = [];
+    let cur = [rows[0]];
+    for (let i = 1; i < rows.length; i++) {
+      const a = rows[i - 1], b = rows[i], rule = b.y - a.y > hm * 1.8 && H.some(l => l.y > a.y + a.h * .4 && l.y < b.y - b.h * .8 && l.x1 - l.x0 >= 30), sep = !a.cells.some(p => b.cells.some(q => p.x0 < q.x1 && q.x0 < p.x1));
+      if (b.y - a.y > hm * 2.5 || rule || (sep && b.y - a.y > hm * 1.5)) {
+        bands.push(cur);
+        cur = [b];
+      }
+      else
+        cur.push(b);
+    }
+    bands.push(cur);
+    for (const bd of bands) {
+      const cs = bd.flatMap(r => r.cells.map(c => ({ ...c, r }))), cb = X.cols(cs, 0), colOf = c => { let best = 0, bo = -1e9; cb.forEach((b, k) => { const o = Math.min(b[1], c.x1) - Math.max(b[0], c.x0); if (o > bo) {
+        bo = o;
+        best = k;
+      } }); return best; };
+      const lines = cb.map(() => []);
+      cs.forEach(c => lines[colOf(c)].push(c));
+      const cells = cb.map((b, k) => {
+        const ls = lines[k], byRow = [];
+        ls.forEach(c => { const e = byRow.find(x => x.r === c.r); if (e)
+          e.cs.push(c);
+        else
+          byRow.push({ r: c.r, cs: [c] }); });
+        byRow.sort((p, q) => p.r.y - q.r.y);
+        const txt = byRow.map(e => e.cs.sort((p, q) => p.x0 - q.x0).map(c => c.t).join(' ')).join('\n'), ft = X.fontOf(ls.map(c => ({ f: c.f, h: c.h })));
+        const ext = byRow.map(e => [Math.min(...e.cs.map(c => c.x0)), Math.max(...e.cs.map(c => c.x1))]), mid = (b[0] + b[1]) / 2;
+        let al = 'left';
+        if (ext.length > 1) {
+          if (ext.every(e => Math.abs((e[0] + e[1]) / 2 - mid) <= 3) && ext.some(e => e[0] - b[0] > 6))
+            al = 'center';
+          else if (ext.every(e => Math.abs(e[1] - b[1]) <= 3) && ext.some(e => e[0] - b[0] > 3))
+            al = 'right';
+        }
+        else if (cb.length === 1 && Math.abs(mid - pageW / 2) <= pageW * .03 && b[1] - b[0] < pageW * .9)
+          al = 'center';
+        return { t: txt, al, fn: ft.fn, fs: ft.fs };
+      });
+      const tot = pageW * .9 / CFG.colWidthPt, ext = cb.map(b => (b[1] - b[0]) / CFG.colWidthPt), sum = ext.reduce((a, b) => a + b, 0), extra = Math.max(0, tot - sum) / cb.length;
+      const ys = bd.map(r => r.y);
+      out.push({ kind: 'block', top: bd[0].y, left: cb[0][0], cw: cb.length === 1 ? [+tot.toFixed(1)] : ext.map(e => +(e + extra).toFixed(1)), rh: [+Math.max(12, Math.max(...ys) - Math.min(...ys) + hm * 1.4).toFixed(2)], rows: [cells], merges: [], border: false, conf: 1 });
+    }
+    return out;
+  }
+});
+</script>
+  <script>
+/* js/core/analyze.js */
+// Runs the whole analysis for a PDF document and returns the list of sheets.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  async analyze(doc, Util, OPS, onProg) {
+    const per = [], plain = [], emptyPages = [];
+    let chars = 0;
+    for (let p = 1; p <= doc.numPages; p++) {
+      if (onProg)
+        onProg(p, doc.numPages);
+      const pg = await doc.getPage(p), vp = pg.getViewport({ scale: 1 });
+      let items = X.items(await pg.getTextContent(), vp, Util);
+      const n = items.reduce((a, i) => a + i.s.trim().length, 0);
+      chars += n;
+      if (n < 5) {
+        emptyPages.push(p);
+        continue;
+      }
+      const { H, V } = X.segs(await pg.getOperatorList(), OPS, vp, Util), g = X.grids(H, V, items), sheets = g.sheets.map(s => ({ ...s, page: p }));
+      items = items.filter(i => !g.used.has(i));
+      const t = X.tables(X.rows(items), vp.width, p);
+      t.tables.forEach((x, k) => { x.firstOnPage = k === 0; x.lastOnPage = k === t.tables.length - 1; plain.push(x); });
+      const rest = X.rows(t.rest.flatMap(r => r.items), { k: 2.6, pad: true });
+      X.blocks(rest, H, vp.width).forEach(b => sheets.push({ ...b, page: p }));
+      per.push(...sheets);
+    }
+    X.merge(plain).forEach(t => per.push({ ...X.plainSheet(t), page: t.page }));
+    per.sort((a, b) => a.page - b.page || a.top - b.top || a.left - b.left);
+    return { scanned: emptyPages.length === doc.numPages, emptyPages, sheets: per, chars, pages: doc.numPages };
+  }
+});
+</script>
+  <script>
+/* js/core/workbook.js */
+// Writes the analysed sheets into an ExcelJS workbook.
+// Adds methods to the shared `X` object (see core/namespace.js).
+Object.assign(X, {
+  // build an ExcelJS workbook, one "Table N" sheet per detected region (like Smallpdf)
+  book(E, res, withBlocks) {
+    const wb = new E.Workbook(), thin = { style: 'thin' };
+    let n = 0;
+    for (const sh of res.sheets) {
+      if (sh.kind === 'block' && !withBlocks)
+        continue;
+      const ws = wb.addWorksheet('Table ' + (++n));
+      sh.rows.forEach((row, ri) => row.forEach((cell, ci) => {
+        const c = ws.getCell(ri + 1, ci + 1);
+        if (cell.v != null) {
+          c.value = cell.v;
+          c.numFmt = cell.z;
+        }
+        else if (cell.t)
+          c.value = cell.t;
+        c.font = { name: cell.fn || 'Arial', size: cell.fs || 9 };
+        c.alignment = { horizontal: cell.al || 'left', vertical: 'top', wrapText: true };
+        if (sh.border)
+          c.border = { top: thin, left: thin, bottom: thin, right: thin };
+      }));
+      sh.merges.forEach(m => ws.mergeCells(m[0] + 1, m[1] + 1, m[2] + 1, m[3] + 1));
+      sh.cw.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+      sh.rh.forEach((h, i) => { ws.getRow(i + 1).height = h; });
+    }
+    return wb;
+  }
+});
+</script>
+  <!-- 4. one file per tool -->
+  <script>
+/* js/tools/edit-sign.js */
+// Edit PDF and Sign PDF: click-to-place text and signature editor.
+function editTool(root, signFirst) {
+  let bytes, view, pi = 0, np = 1, S = 1, items = [], pending = null, rendering = false, sig = null;
+  try {
+    sig = JSON.parse(localStorage.getItem('folio-sig') || 'null');
+  }
+  catch (e) { }
+  const size = sel([[9, '9 pt'], [10, '10 pt'], [11, '11 pt'], [12, '12 pt'], [14, '14 pt'], [18, '18 pt'], [24, '24 pt']], 11);
+  const color = h('input', { type: 'color', value: '#111111', title: 'Text color' });
+  const hint = h('span', { class: 'note' }, 'Click the page to add text.');
+  const pl = h('span', { class: 'note' });
+  const dlb = B('Download', () => busy(dlb, exportPdf), 'primary');
+  const bar = h('div', { class: 'bar sticky', style: 'display:none' }, B('←', () => nav(-1), 'sm'), pl, B('→', () => nav(1), 'sm'), size, color, B('Signature', openPad), hint, h('span', { class: 'sp' }), B('Close', () => go(cur)), dlb);
+  const cv = h('canvas'), stage = h('div', { class: 'stage' }, cv), holder = h('div', { class: 'pagewrap', style: 'display:none' }, stage);
+  const dz = pick(root, ['application/pdf'], false, 'Choose a PDF to ' + (signFirst ? 'sign' : 'edit'), async (f) => {
+    bytes = new Uint8Array(await f.arrayBuffer());
+    view = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    np = view.numPages;
+    dz.style.display = 'none';
+    bar.style.display = 'flex';
+    holder.style.display = 'flex';
+    await show();
+    if (signFirst)
+      openPad();
+  });
+  root.append(bar, holder);
+  async function nav(d) { const n = pi + d; if (rendering || n < 0 || n >= np)
+    return; pi = n; await show(); }
+  async function show() {
+    rendering = true;
+    try {
+      const pg = await view.getPage(pi + 1), base = pg.getViewport({ scale: 1 });
+      S = Math.min(2, (Math.min(root.clientWidth, 920) - 24) / base.width);
+      const dpr = window.devicePixelRatio || 1, vp = pg.getViewport({ scale: S * dpr });
+      cv.width = vp.width;
+      cv.height = vp.height;
+      cv.style.width = stage.style.width = base.width * S + 'px';
+      cv.style.height = stage.style.height = base.height * S + 'px';
+      await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      pl.textContent = `Page ${pi + 1} of ${np}`;
+      stage.querySelectorAll('.item').forEach(e => e.remove());
+      items.filter(it => it.page === pi).forEach(mount);
+    }
+    finally {
+      rendering = false;
+    }
+  }
+  cv.onclick = e => {
+    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S, y = (e.clientY - r.top) / S;
+    if (pending) {
+      const w = 150;
+      add({ type: 'img', page: pi, x: x - w / 2, y: y - w * pending.ratio / 2, w, ratio: pending.ratio, data: pending.data });
+      pending = null;
+      hint.textContent = 'Click the page to add text.';
+    }
+    else
+      add({ type: 'txt', page: pi, x, y, size: +size.value, color: color.value, text: '' });
+  };
+  function add(it) { items.push(it); mount(it); if (it.type === 'txt')
+    it.el.querySelector('.txt').focus(); }
+  function mount(it) {
+    const el = h('div', { class: 'item' });
+    it.el = el;
+    const place = () => { el.style.left = it.x * S + 'px'; el.style.top = it.y * S + 'px'; };
+    const grip = h('span', { class: 'grip', title: 'Drag to move' }, '⠿');
+    const del = h('span', { class: 'x', title: 'Remove', onclick: () => { items = items.filter(i => i !== it); el.remove(); } }, '×');
+    let body;
+    if (it.type === 'txt') {
+      body = h('div', { class: 'txt', contenteditable: 'true', spellcheck: 'false' });
+      body.textContent = it.text;
+      body.style.fontSize = it.size * S + 'px';
+      body.style.color = it.color;
+      body.oninput = () => { it.text = body.innerText; };
+      body.onblur = () => { if (!it.text.trim()) {
+        items = items.filter(i => i !== it);
+        el.remove();
+      } };
+      el.append(grip, del, body);
+    }
+    else {
+      body = h('img', { src: it.data, draggable: 'false' });
+      body.style.width = it.w * S + 'px';
+      const rs = h('span', { class: 'rs', title: 'Resize' });
+      rs.onpointerdown = e => {
+        e.preventDefault();
+        rs.setPointerCapture(e.pointerId);
+        const sx = e.clientX, w0 = it.w;
+        rs.onpointermove = ev => { it.w = Math.max(30, w0 + (ev.clientX - sx) / S); body.style.width = it.w * S + 'px'; };
+        rs.onpointerup = () => { rs.onpointermove = null; rs.onpointerup = null; };
+      };
+      el.append(grip, del, body, rs);
+    }
+    grip.onpointerdown = e => {
+      e.preventDefault();
+      grip.setPointerCapture(e.pointerId);
+      const sx = e.clientX, sy = e.clientY, ox = it.x, oy = it.y;
+      grip.onpointermove = ev => { it.x = ox + (ev.clientX - sx) / S; it.y = oy + (ev.clientY - sy) / S; place(); };
+      grip.onpointerup = () => { grip.onpointermove = null; grip.onpointerup = null; };
+    };
+    place();
+    stage.append(el);
+  }
+  function openPad() {
+    const c = h('canvas', { width: 560, height: 200, class: 'pad' }), g = c.getContext('2d');
+    g.lineWidth = 3.2;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.strokeStyle = '#111';
+    let down = false;
+    const pt = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; };
+    c.onpointerdown = e => { c.setPointerCapture(e.pointerId); down = true; const [x, y] = pt(e); g.beginPath(); g.moveTo(x, y); g.lineTo(x + .1, y + .1); g.stroke(); };
+    c.onpointermove = e => { if (!down)
+      return; const [x, y] = pt(e); g.lineTo(x, y); g.stroke(); };
+    c.onpointerup = () => { down = false; };
+    const close = () => m.remove();
+    const use = (url, ratio) => { pending = { data: url, ratio }; hint.textContent = 'Click the page where the signature goes.'; close(); };
+    const m = h('div', { class: 'modal' }, h('div', { class: 'dlg' }, h('b', {}, 'Draw your signature'), c, h('div', { class: 'bar' }, B('Clear', () => g.clearRect(0, 0, c.width, c.height)), sig ? B('Use saved signature', () => use(sig.url, sig.ratio)) : '', h('span', { class: 'sp' }), B('Cancel', close), B('Use this signature', () => {
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+      for (let y = 0; y < c.height; y++)
+        for (let x = 0; x < c.width; x++)
+          if (d[(y * c.width + x) * 4 + 3] > 20) {
+            if (x < x0)
+              x0 = x;
+            if (x > x1)
+              x1 = x;
+            if (y < y0)
+              y0 = y;
+            if (y > y1)
+              y1 = y;
+          }
+      if (x1 < 0)
+        return alert('Draw your signature first.');
+      x0 = Math.max(0, x0 - 6);
+      y0 = Math.max(0, y0 - 6);
+      x1 = Math.min(c.width - 1, x1 + 6);
+      y1 = Math.min(c.height - 1, y1 + 6);
+      const o = h('canvas');
+      o.width = x1 - x0 + 1;
+      o.height = y1 - y0 + 1;
+      o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+      sig = { url: o.toDataURL('image/png'), ratio: o.height / o.width };
+      try {
+        localStorage.setItem('folio-sig', JSON.stringify(sig));
+      }
+      catch (e) { }
+      use(sig.url, sig.ratio);
+    }, 'primary'))));
+    document.body.append(m);
+  }
+  async function exportPdf() {
+    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true }), font = await doc.embedFont(StandardFonts.Helvetica), pgs = doc.getPages();
+    for (const it of items) {
+      const pg = pgs[it.page];
+      if (!pg)
+        continue;
+      const { width: W, height: H } = pg.getSize(), rot = ((pg.getRotation().angle % 360) + 360) % 360;
+      const map = (u, v) => rot === 90 ? [v, u] : rot === 180 ? [W - u, H - v] : rot === 270 ? [W - v, H - u] : [u, H - v];
+      if (it.type === 'txt') {
+        const t = (it.text || '').replace(/\r/g, '');
+        if (!t.trim())
+          continue;
+        const hx = it.color, col = rgb(parseInt(hx.slice(1, 3), 16) / 255, parseInt(hx.slice(3, 5), 16) / 255, parseInt(hx.slice(5, 7), 16) / 255);
+        t.split('\n').forEach((line, k) => {
+          if (!line)
+            return;
+          const [x, y] = map(it.x, it.y + it.size * .85 + k * it.size * 1.2);
+          pg.drawText(clean(line), { x, y, size: it.size, font, color: col, rotate: degrees(rot) });
+        });
+      }
+      else {
+        const u8 = Uint8Array.from(atob(it.data.split(',')[1]), ch => ch.charCodeAt(0)), img = await doc.embedPng(u8), hh = it.w * it.ratio, [x, y] = map(it.x, it.y + hh);
+        pg.drawImage(img, { x, y, width: it.w, height: hh, rotate: degrees(rot) });
+      }
+    }
+    await save(await doc.save(), 'edited.pdf');
+  }
+}
+</script>
+  <script>
+/* js/tools/pdf-to-excel.js */
+// PDF to Excel: UI around the table-extraction engine in js/core/.
+const loadScript = u => new Promise((ok, no) => { if (window.ExcelJS)
+  return ok(); const s = h('script', { src: u }); s.onload = ok; s.onerror = () => no(Error('The Excel library could not be loaded. Check your connection and try again.')); document.head.append(s); });
+function pdf2xlsxTool(root) {
+  pick(root, ['application/pdf'], false, 'Choose a PDF with tables', async (f) => {
+    if (!f.size)
+      return alert('That file is empty.');
+    if (f.size > CFG.maxUploadMB * 1024 * 1024)
+      return alert('That file is ' + fmt(f.size) + '. The limit is ' + CFG.maxUploadMB + ' MB.');
+    const buf = await f.arrayBuffer();
+    if (!new TextDecoder('latin1').decode(buf.slice(0, 1024)).includes('%PDF-'))
+      return alert('That file is not a valid PDF.');
+    const st = h('p', { class: 'note' }, 'Opening…'), pr = h('progress', { max: 1, value: 0 });
+    root.replaceChildren(h('div', { class: 'bar' }, h('span', { class: 'note' }, f.name + ' · ' + fmt(f.size)), B('Change file', () => go(cur), 'sm')), st, pr);
+    let res;
+    try {
+      const doc = await openPdfJs(buf);
+      if (doc.numPages > CFG.maxPages)
+        throw Error('This PDF has ' + doc.numPages + ' pages. The limit is ' + CFG.maxPages + '.');
+      res = await X.analyze(doc, pdfjsLib.Util, pdfjsLib.OPS, (p, n) => { st.textContent = `Reading page ${p} of ${n}…`; pr.value = p / n; });
+    }
+    catch (e) {
+      pr.remove();
+      st.className = 'warn';
+      st.textContent = e.name === 'PasswordException' ? 'This PDF is password protected. Remove the password and try again.' : (e.name === 'InvalidPDFException' || e.name === 'FormatError') ? 'This PDF is damaged or not a valid PDF.' : 'Could not read this PDF: ' + (e.message || e);
+      return;
+    }
+    pr.remove();
+    st.remove();
+    showResult(f, res);
+  });
+  function showResult(f, res) {
+    const warn = t => root.append(h('div', { class: 'warn' }, t));
+    if (res.scanned) {
+      warn('No text found. This looks like a scanned PDF (pages are pictures). Reading scans needs OCR, and OCR can\'t run inside this page because its engine and language data can\'t be loaded here. Nothing was converted. Run the file through OCR first (for example "Recognize text" in Acrobat), then open the searchable PDF here.');
+      return;
+    }
+    if (res.emptyPages.length)
+      warn('Page' + (res.emptyPages.length > 1 ? 's ' : ' ') + res.emptyPages.join(', ') + ' have no text (probably scans) and were skipped.');
+    const tabs = res.sheets.filter(s => s.kind !== 'block');
+    if (!tabs.length)
+      warn('No tables were found in this PDF. Its text is still exported as text blocks.');
+    else if (tabs.some(s => s.conf < .75))
+      warn('Some tables have rows that don\'t line up with their columns. Compare them with the PDF before relying on the numbers.');
+    const withText = h('input', { type: 'checkbox', checked: '' }), list = h('div'), dlb = B('Download Excel', () => busy(dlb, async () => {
+      await loadScript(CFG.excelJsUrl);
+      if (!window.ExcelJS)
+        throw Error('The Excel library did not load.');
+      await save(await X.book(ExcelJS, res, withText.checked).xlsx.writeBuffer(), stem(f) + '.xlsx');
+    }), 'primary');
+    const kind = { ruled: 'ruled table', plain: 'table without borders', block: 'text block' };
+    function draw() {
+      const inc = res.sheets.filter(s => s.kind !== 'block' || withText.checked);
+      dlb.disabled = !inc.length;
+      list.replaceChildren(h('p', { class: 'note' }, `${tabs.length} table${tabs.length === 1 ? '' : 's'} and ${res.sheets.length - tabs.length} text block${res.sheets.length - tabs.length === 1 ? '' : 's'} found in ${res.pages} page${res.pages === 1 ? '' : 's'}. Each becomes one sheet.`), ...inc.map((s, i) => {
+        const tb = h('table');
+        s.rows.slice(0, 8).forEach(r => tb.append(h('tr', {}, r.map(c => h('td', { style: 'text-align:' + (c.al || 'left') }, c.v != null ? String(c.v) : (c.t || ''))))));
+        return h('div', {}, h('p', { class: 'note' }, `Table ${i + 1} · page ${s.page} · ${kind[s.kind]} · ${s.rows.length} row${s.rows.length === 1 ? '' : 's'} × ${s.cw.length} column${s.cw.length === 1 ? '' : 's'}` + (s.kind === 'plain' ? ' · ' + X.label(s.conf) + ' match' : '') + (s.rows.length > 8 ? ' · first 8 rows shown' : '')), h('div', { class: 'pv' }, tb));
+      }));
+    }
+    withText.onchange = draw;
+    root.append(list, h('div', { class: 'controls' }, h('label', { style: 'flex-direction:row;gap:6px;align-items:center' }, withText, 'Include text blocks (non-table text) as sheets')), h('div', { class: 'bar' }, dlb));
+    draw();
+  }
+}
+</script>
+  <script>
+/* js/tools/merge.js */
+// Merge PDF: combine several PDFs into one.
+function mergeTool(root) {
+  const run = h('button', { class: 'btn primary', disabled: '', onclick: () => busy(run, async () => {
+      const out = await PDFDocument.create();
+      for (const f of L.files()) {
+        const d = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+        (await out.copyPages(d, d.getPageIndices())).forEach(p => out.addPage(p));
+      }
+      await save(await out.save(), 'merged.pdf');
+    }) }, 'Merge PDFs');
+  const L = fileList(fs => { run.disabled = fs.length < 2; });
+  pick(root, ['application/pdf'], true, 'Choose PDFs to merge', L.add);
+  root.append(L.el, h('p', { class: 'note' }, 'Add at least two files. Use the arrows to set the order.'), h('div', { class: 'bar' }, run));
+}
+</script>
+  <script>
+/* js/tools/split.js */
+// Split PDF: extract page ranges, or one file per page.
+function splitTool(root) {
+  onePdf(root, async (f, buf) => {
+    const src = await PDFDocument.load(buf, { ignoreEncryption: true }), n = src.getPageCount();
+    const inp = h('input', { type: 'text', placeholder: 'e.g. 1-3, 5, 8-10' }), mode = sel([['one', 'One file with those pages'], ['each', 'A separate file per page (zip)']], 'one');
+    const run = B('Split', () => busy(run, async () => {
+      const idx = ranges(inp.value, n);
+      if (mode.value === 'one') {
+        const o = await PDFDocument.create();
+        (await o.copyPages(src, idx)).forEach(p => o.addPage(p));
+        await save(await o.save(), stem(f) + '-extract.pdf');
+      }
+      else {
+        const z = new JSZip();
+        for (const i of idx) {
+          const o = await PDFDocument.create();
+          (await o.copyPages(src, [i])).forEach(p => o.addPage(p));
+          z.file(`${stem(f)}-p${i + 1}.pdf`, await o.save());
+        }
+        await save(await z.generateAsync({ type: 'blob' }), stem(f) + '-pages.zip');
+      }
+    }), 'primary');
+    root.append(h('p', { class: 'note' }, n + ' pages. Leave Pages blank to use all of them.'), h('div', { class: 'controls' }, L2('Pages', inp), L2('Output', mode)), h('div', { class: 'bar' }, run));
+  });
+}
+</script>
+  <script>
+/* js/tools/organize.js */
+// Organize pages: rotate, reorder, delete pages.
+function organizeTool(root) {
+  onePdf(root, async (f, buf) => {
+    const status = h('p', { class: 'note' }, 'Loading pages…');
+    root.append(status);
+    const view = await openPdfJs(buf);
+    let pages = [];
+    for (let i = 0; i < view.numPages; i++)
+      pages.push({ i, rot: 0, c: await pageToCanvas(await view.getPage(i + 1), .3) });
+    status.remove();
+    const grid = h('div', { class: 'thumbs' });
+    const run = B('Save PDF', () => busy(run, async () => {
+      const src = await PDFDocument.load(buf, { ignoreEncryption: true }), o = await PDFDocument.create();
+      const cp = await o.copyPages(src, pages.map(p => p.i));
+      cp.forEach((pg, k) => { pg.setRotation(degrees((((pg.getRotation().angle + pages[k].rot) % 360) + 360) % 360)); o.addPage(pg); });
+      await save(await o.save(), stem(f) + '-organized.pdf');
+    }), 'primary');
+    function draw() {
+      grid.replaceChildren(...pages.map((p, k) => {
+        const r = p.rot % 180 !== 0, c = p.c;
+        const fit = r ? Math.min(160 / c.height, 190 / c.width) : Math.min(160 / c.width, 190 / c.height);
+        c.style.width = c.width * fit + 'px';
+        c.style.height = c.height * fit + 'px';
+        c.style.transform = `rotate(${p.rot}deg)`;
+        const mv = d => () => { const j = k + d; if (j >= 0 && j < pages.length) {
+          [pages[k], pages[j]] = [pages[j], pages[k]];
+          draw();
+        } };
+        return h('div', {}, h('div', { class: 'th' }, c), h('div', { class: 'note', style: 'text-align:center' }, 'Page ' + (p.i + 1)), h('div', { class: 'tc' }, B('↺', () => { p.rot -= 90; draw(); }, 'sm'), B('↻', () => { p.rot += 90; draw(); }, 'sm'), B('◀', mv(-1), 'sm'), B('▶', mv(1), 'sm'), B('✕', () => { pages.splice(k, 1); draw(); }, 'sm')));
+      }));
+      run.disabled = !pages.length;
+    }
+    root.append(h('p', { class: 'note' }, 'Rotate, move or delete pages, then save.'), grid, h('div', { class: 'bar' }, run));
+    draw();
+  });
+}
+</script>
+  <script>
+/* js/tools/compress.js */
+// Compress PDF: re-render pages as JPEG to shrink scans.
+function compressTool(root) {
+  onePdf(root, async (f, buf) => {
+    const lvl = sel([['1.2,0.5', 'Smallest file'], ['1.6,0.65', 'Balanced'], ['2.2,0.8', 'Best quality']], '1.6,0.65'), msg = h('p', { class: 'note' });
+    const run = B('Compress', () => busy(run, async () => {
+      const [k, q] = lvl.value.split(',').map(Number), view = await openPdfJs(buf), doc = await PDFDocument.create();
+      for (let i = 1; i <= view.numPages; i++) {
+        msg.textContent = `Page ${i} of ${view.numPages}…`;
+        const pg = await view.getPage(i), b = pg.getViewport({ scale: 1 }), c = await pageToCanvas(pg, k);
+        const img = await doc.embedJpg(new Uint8Array(await (await toBlob(c, 'image/jpeg', q)).arrayBuffer()));
+        doc.addPage([b.width, b.height]).drawImage(img, { x: 0, y: 0, width: b.width, height: b.height });
+      }
+      const res = await doc.save();
+      msg.textContent = `${fmt(f.size)} → ${fmt(res.length)}. ` + (res.length >= f.size ? 'This file was already small, so keep the original.' : 'Pages are now images, so text can no longer be selected.');
+      await save(res, stem(f) + '-compressed.pdf');
+    }), 'primary');
+    root.append(h('div', { class: 'controls' }, L2('Quality', lvl)), h('div', { class: 'bar' }, run), msg);
+  });
+}
+</script>
+  <script>
+/* js/tools/images-to-pdf.js */
+// Images to PDF: PNG/JPG files into one PDF.
+function imgTool(root) {
+  const size = sel([['fit', 'Same size as the image'], ['a4', 'A4 page, image centered']], 'fit');
+  const run = h('button', { class: 'btn primary', disabled: '', onclick: () => busy(run, async () => {
+      const o = await PDFDocument.create();
+      for (const f of L.files()) {
+        const by = new Uint8Array(await f.arrayBuffer()), img = f.type === 'image/png' ? await o.embedPng(by) : await o.embedJpg(by);
+        let w = img.width, hh = img.height;
+        if (size.value === 'fit') {
+          const k = Math.min(1, 1000 / Math.max(w, hh));
+          w *= k;
+          hh *= k;
+          o.addPage([w, hh]).drawImage(img, { x: 0, y: 0, width: w, height: hh });
+        }
+        else {
+          const PW = 595.28, PH = 841.89, m = 28, k = Math.min((PW - 2 * m) / w, (PH - 2 * m) / hh);
+          w *= k;
+          hh *= k;
+          o.addPage([PW, PH]).drawImage(img, { x: (PW - w) / 2, y: (PH - hh) / 2, width: w, height: hh });
+        }
+      }
+      await save(await o.save(), 'images.pdf');
+    }) }, 'Create PDF');
+  const L = fileList(fs => { run.disabled = !fs.length; });
+  pick(root, ['image/png', 'image/jpeg'], true, 'Choose PNG or JPG images', L.add);
+  root.append(L.el, h('div', { class: 'controls' }, L2('Page size', size)), h('div', { class: 'bar' }, run));
+}
+</script>
+  <script>
+/* js/tools/pdf-to-images.js */
+// PDF to images: each page as PNG or JPG.
+function pdf2imgTool(root) {
+  onePdf(root, async (f, buf) => {
+    const kind = sel([['png', 'PNG'], ['jpg', 'JPG']], 'png'), res = sel([['1.5', 'Screen'], ['2.5', 'Print quality']], '2.5'), msg = h('p', { class: 'note' });
+    const run = B('Convert', () => busy(run, async () => {
+      const view = await openPdfJs(buf), ext = kind.value, mime = ext === 'png' ? 'image/png' : 'image/jpeg', out = [];
+      for (let i = 1; i <= view.numPages; i++) {
+        msg.textContent = `Page ${i} of ${view.numPages}…`;
+        out.push([`${stem(f)}-${i}.${ext}`, await toBlob(await pageToCanvas(await view.getPage(i), +res.value), mime, .92)]);
+      }
+      msg.textContent = '';
+      if (out.length === 1)
+        await save(out[0][1], out[0][0]);
+      else {
+        const z = new JSZip();
+        out.forEach(([n, b]) => z.file(n, b));
+        await save(await z.generateAsync({ type: 'blob' }), stem(f) + '-images.zip');
+      }
+    }), 'primary');
+    root.append(h('div', { class: 'controls' }, L2('Format', kind), L2('Resolution', res)), h('div', { class: 'bar' }, run), msg);
+  });
+}
+</script>
+  <script>
+/* js/tools/watermark.js */
+// Watermark: stamp text across every page.
+function watermarkTool(root) {
+  onePdf(root, async (f, buf) => {
+    const txt = h('input', { type: 'text', value: 'CONFIDENTIAL' }), sz = h('input', { type: 'number', value: 64, min: 8, max: 200 }), op = h('input', { type: 'range', min: .05, max: .8, step: .05, value: .25 }), ang = h('input', { type: 'number', value: 45, min: -90, max: 90 });
+    const run = B('Add watermark', () => busy(run, async () => {
+      const doc = await PDFDocument.load(buf, { ignoreEncryption: true }), font = await doc.embedFont(StandardFonts.HelveticaBold);
+      const t = clean(txt.value), size = +sz.value, th = +ang.value * Math.PI / 180, c = Math.cos(th), s = Math.sin(th), tw = font.widthOfTextAtSize(t, size);
+      for (const pg of doc.getPages()) {
+        const { width: W, height: H } = pg.getSize();
+        pg.drawText(t, { x: W / 2 - (tw / 2) * c + size * .35 * s, y: H / 2 - (tw / 2) * s - size * .35 * c, size, font, color: rgb(.5, .5, .5), opacity: +op.value, rotate: degrees(+ang.value) });
+      }
+      await save(await doc.save(), stem(f) + '-watermarked.pdf');
+    }), 'primary');
+    root.append(h('div', { class: 'controls' }, L2('Text', txt), L2('Size', sz), L2('Angle', ang), L2('Opacity', op)), h('div', { class: 'bar' }, run));
+  });
+}
+</script>
+  <script>
+/* js/tools/page-numbers.js */
+// Page numbers: number the pages of a document.
+function numbersTool(root) {
+  onePdf(root, async (f, buf) => {
+    const pos = sel([['bc', 'Bottom center'], ['br', 'Bottom right'], ['bl', 'Bottom left'], ['tc', 'Top center'], ['tr', 'Top right']], 'bc'), start = h('input', { type: 'number', value: 1 }), style = sel([['n', '1, 2, 3'], ['of', 'Page 1 of N']], 'n');
+    const run = B('Add numbers', () => busy(run, async () => {
+      const doc = await PDFDocument.load(buf, { ignoreEncryption: true }), font = await doc.embedFont(StandardFonts.Helvetica), pgs = doc.getPages(), s0 = +start.value || 1, last = s0 + pgs.length - 1;
+      pgs.forEach((pg, i) => {
+        const { width: W, height: H } = pg.getSize(), t = style.value === 'n' ? String(s0 + i) : `Page ${s0 + i} of ${last}`, tw = font.widthOfTextAtSize(t, 10), p = pos.value;
+        const x = p[1] === 'c' ? (W - tw) / 2 : p[1] === 'l' ? 36 : W - 36 - tw, y = p[0] === 'b' ? 24 : H - 34;
+        pg.drawText(t, { x, y, size: 10, font, color: rgb(.1, .1, .1) });
+      });
+      await save(await doc.save(), stem(f) + '-numbered.pdf');
+    }), 'primary');
+    root.append(h('div', { class: 'controls' }, L2('Position', pos), L2('Start at', start), L2('Style', style)), h('div', { class: 'bar' }, run));
+  });
+}
+</script>
+  <!-- 5. tool list + start-up (must be last) -->
+  <script>
+/* js/app.js */
+// Tool list, tiny router (go/render) and start-up. Loaded last.
+const TOOLS = [
+  { id: 'edit', name: 'Edit PDF', d: 'Add text anywhere on a page, then download.', run: r => editTool(r, false) },
+  { id: 'sign', name: 'Sign PDF', d: 'Draw your signature once, place it on any page.', run: r => editTool(r, true) },
+  { id: 'pdf2xlsx', name: 'PDF to Excel', d: 'Turn a PDF into a spreadsheet, one sheet per table or block, like Smallpdf.', run: pdf2xlsxTool },
+  { id: 'merge', name: 'Merge PDF', d: 'Combine several PDFs into one, in the order you choose.', run: mergeTool },
+  { id: 'split', name: 'Split PDF', d: 'Extract page ranges, or save every page as its own file.', run: splitTool },
+  { id: 'organize', name: 'Organize pages', d: 'Rotate, reorder and delete pages.', run: organizeTool },
+  { id: 'compress', name: 'Compress PDF', d: 'Shrink a heavy scan to fit upload limits.', run: compressTool },
+  { id: 'img2pdf', name: 'Images to PDF', d: 'Turn photos and screenshots into one PDF.', run: imgTool },
+  { id: 'pdf2img', name: 'PDF to images', d: 'Save each page as PNG or JPG.', run: pdf2imgTool },
+  { id: 'watermark', name: 'Watermark', d: 'Stamp text across every page.', run: watermarkTool },
+  { id: 'numbers', name: 'Page numbers', d: 'Number the pages of a document.', run: numbersTool }
+];
+function go(id) { cur = id; render(); scrollTo(0, 0); }
+function render() {
+  const t = TOOLS.find(x => x.id === cur);
+  app.replaceChildren();
+  if (!t) {
+    app.append(h('h1', {}, 'Fill, merge, split and sign PDFs.'), h('p', { class: 'lede' }, 'Pick a tool, drop in a file, download the result. Everything runs in this tab, so bids and IDs never leave your computer.'), h('div', { class: 'grid' }, TOOLS.map(x => h('button', { class: 'tool', onclick: () => go(x.id) }, h('b', {}, x.name), h('span', {}, x.d)))), h('footer', {}, 'Word and PowerPoint conversion, password protection and OCR for scans need a server, so they are not included.'));
+    return;
+  }
+  const box = h('div');
+  app.append(h('button', { class: 'back', onclick: () => go(null) }, '← All tools'), h('h2', {}, t.name), h('p', { class: 'lede' }, t.d), box);
+  t.run(box);
+}
+document.getElementById('logo').onclick = () => go(null);
+render();
+</script>
+</body>
+</html>

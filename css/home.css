@@ -1,0 +1,42 @@
+/* Home screen: the grid of tools. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(235px,1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  margin-top: 26px;
+}
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: none;
+  color: var(--ink);
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+  cursor: pointer;
+  font: inherit;
+}
+.tool b {
+  font-size: 17px;
+}
+.tool span {
+  font: 13px system-ui,sans-serif;
+  opacity: .7;
+}
+.tool:hover,
+.tool:focus-visible {
+  background: var(--soft);
+  outline: none;
+}
+.back {
+  font: 13px system-ui,sans-serif;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}

@@ -1,0 +1,112 @@
+/* Edit/Sign editor: page stage, placed text/images, signature dialog. */
+.pagewrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 60px;
+  overflow: auto;
+}
+.stage {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 2px 18px rgba(0,0,0,.25);
+}
+.stage canvas {
+  display: block;
+  cursor: text;
+}
+.item {
+  position: absolute;
+}
+.txt {
+  outline: 1px dashed transparent;
+  min-width: 28px;
+  line-height: 1;
+  white-space: pre;
+  font-family: Helvetica,Arial,sans-serif;
+  padding: 0;
+}
+.item:hover .txt,
+.txt:focus {
+  outline-color: var(--accent);
+}
+.txt:empty::before {
+  content: "Type here";
+  opacity: .35;
+}
+.item img {
+  display: block;
+  outline: 1px dashed transparent;
+}
+.item:hover img {
+  outline-color: var(--accent);
+}
+.grip,
+.x,
+.rs {
+  position: absolute;
+  display: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--paper);
+  font: 12px/18px system-ui,sans-serif;
+  text-align: center;
+  touch-action: none;
+  user-select: none;
+}
+.grip {
+  left: 0;
+  top: -18px;
+  cursor: grab;
+}
+.x {
+  left: 22px;
+  top: -18px;
+  background: var(--danger);
+  cursor: pointer;
+}
+.rs {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+.item:hover .grip,
+.item:hover .x,
+.item:hover .rs,
+.item:focus-within .grip,
+.item:focus-within .x {
+  display: block;
+}
+@media (hover:none) {
+  .grip,
+  .x,
+  .rs {
+    display: block;
+  }
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,.5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.dlg {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  width: min(600px,100%);
+}
+.pad {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  margin: 10px 0;
+  touch-action: none;
+  cursor: crosshair;
+}

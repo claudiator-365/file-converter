@@ -1,0 +1,64 @@
+/* Page frame: body, header, headings, footer. */
+html {
+  scroll-padding-top: env(safe-area-inset-top,0px);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.55 "Iowan Old Style",Georgia,serif;
+}
+header {
+  position: sticky;
+  top: env(safe-area-inset-top,0px);
+  z-index: 20;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.logo {
+  font: 600 20px Georgia,serif;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+header span {
+  font: 12px system-ui,sans-serif;
+  opacity: .65;
+}
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 20px 70px;
+}
+h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  margin: 12px 0 8px;
+  max-width: 560px;
+}
+h2 {
+  font-size: 24px;
+  margin: 8px 0 2px;
+}
+.lede,
+.note {
+  font: 13px system-ui,sans-serif;
+  opacity: .75;
+  margin: 4px 0;
+}
+
+footer {
+  font: 12px system-ui,sans-serif;
+  opacity: .6;
+  margin-top: 30px;
+}
